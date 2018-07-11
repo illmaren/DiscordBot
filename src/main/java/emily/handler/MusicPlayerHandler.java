@@ -75,6 +75,7 @@ public class MusicPlayerHandler {
     private volatile OPlaylist playlist;
     private Random rng;
     private volatile LinkedList<OMusic> queue;
+    private Message last_message;
 
     private MusicPlayerHandler(Guild guild, DiscordBot bot) {
 
@@ -319,6 +320,7 @@ public class MusicPlayerHandler {
             final long deleteAfter = Math.min(Math.max(currentSongLength * 1000L, 60_000L), 7200_000L);
             Consumer<Message> callback = (message) -> {
                 if (messageType.equals("clear")) {
+                    last_message = message;
                     bot.schedule(() -> bot.out.saveDelete(message), deleteAfter, TimeUnit.MILLISECONDS);
                 }
                 bot.musicReactionHandler.clearGuild(guildId);
@@ -363,6 +365,7 @@ public class MusicPlayerHandler {
 
     public boolean leave() {
         if (isConnected()) {
+            bot.out.saveDelete(last_message);
             stopMusic();
         }
         Guild guild = bot.getJda().getGuildById(guildId);
@@ -431,7 +434,9 @@ public class MusicPlayerHandler {
      * Forcefully Skips the currently playing song
      */
     public synchronized void forceSkip() {
+        bot.out.saveDelete(last_message);
         scheduler.skipTrack();
+
     }
 
     /**
